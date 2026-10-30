@@ -48,10 +48,18 @@
             <div class="scene">
               <div id="threeRoot"></div>
               <div id="fallback">
-                <div class="fallback-art" id="fallbackArt">🥣</div><b id="fallbackText">Sua bancada de preparo</b>
-                <p class="muted" id="fallbackMsg">Modo visual alternativo sem Three.js</p><button type="button"
-                  class="btn" id="retry3D" onclick="retry3D()" style="margin-top:14px;display:none">🔄 Tentar o 3D
-                  novamente</button>
+                <div class="fallback-art" id="fallbackArt">🥣</div>
+                <b id="fallbackText" class="fallback-heading">Sua bancada de preparo</b>
+                <div class="fallback-info-card" id="fallbackInfoCard">
+                  <div class="fallback-info-badge">⚠️ Modo 2D Ativo • Aceleração Gráfica Desativada</div>
+                  <p class="muted" id="fallbackMsg">O jogo funciona normalmente no modo 2D abaixo! Para ativar a Cozinha 3D no navegador:</p>
+                  <div class="fallback-guide-steps">
+                    <span><b>1.</b> Abra <code class="guide-code">chrome://settings/system</code> no Chrome ou Edge</span>
+                    <span><b>2.</b> Ative <b>"Usar aceleração gráfica quando disponível"</b></span>
+                    <span><b>3.</b> Reinicie digitando <code class="guide-code">chrome://restart</code> na barra de endereços</span>
+                  </div>
+                  <button type="button" class="btn" id="retry3D" onclick="retry3D()" style="margin-top:8px">🔄 Tentar carregar 3D</button>
+                </div>
               </div>
               <div class="scene-overlay"><span class="pill" id="recipeName">Receita</span><span class="pill"
                   style="font-weight:600" id="sceneHint">🖱️ Arraste os ingredientes</span><span class="pill timer"
@@ -362,6 +370,7 @@
     <footer class="foot">Limonada Summit • Protótipo educacional • Nenhum dado é enviado para servidores externos pelo
       aplicativo (o carregamento da biblioteca 3D depende da CDN).</footer>
   </div>
+  <script src="public/three.min.js"></script>
   <script src="public/models.js"></script>
   <script src="js/app.js"></script>
 </body>

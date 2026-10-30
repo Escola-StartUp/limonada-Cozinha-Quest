@@ -652,36 +652,50 @@ function renderResultCard(data) {
       try {
         let root = $('threeRoot');
 
-        /* ---------- Renderer (com suporte resiliente a WebGL/Software) ---------- */
-        let renderer = null;
-        const rendererConfigs = [
-          { antialias: true, alpha: false, powerPreference: 'default', failIfMajorPerformanceCaveat: false },
-          { antialias: false, alpha: false, powerPreference: 'default', failIfMajorPerformanceCaveat: false },
-          { antialias: false, alpha: false, powerPreference: 'low-power', failIfMajorPerformanceCaveat: false },
-          { antialias: false, alpha: false, failIfMajorPerformanceCaveat: false }
-        ];
-        if (typeof THREE.WebGLRenderer === 'function') {
-          for (const cfg of rendererConfigs) {
-            try {
-              renderer = new THREE.WebGLRenderer(cfg);
-              if (renderer && renderer.getContext()) break;
-            } catch (err) {
-              renderer = null;
-            }
+        /* ---------- Pré-validação silenciosa de WebGL para evitar spam de erros do Three.js ---------- */
+        function probeWebGLContext() {
+          if (typeof window === 'undefined' || !window.WebGLRenderingContext) return null;
+          try {
+            const canvas = document.createElement('canvas');
+            const opts = { antialias: true, alpha: false, powerPreference: 'default', failIfMajorPerformanceCaveat: false };
+            const gl = canvas.getContext('webgl2', opts) ||
+                       canvas.getContext('webgl', opts) ||
+                       canvas.getContext('experimental-webgl', opts);
+            if (!gl) return null;
+            return { canvas, gl };
+          } catch (e) {
+            return null;
           }
         }
-        if (!renderer) {
+
+        const probe = probeWebGLContext();
+        if (!probe) {
+          fallback('webgl');
+          return;
+        }
+
+        let renderer = null;
+        try {
+          renderer = new THREE.WebGLRenderer({
+            canvas: probe.canvas,
+            context: probe.gl,
+            antialias: true,
+            alpha: false,
+            powerPreference: 'default'
+          });
+        } catch (err) {
           try {
-            const testCanvas = document.createElement('canvas');
-            const glCtx = testCanvas.getContext('webgl2', { failIfMajorPerformanceCaveat: false }) ||
-                          testCanvas.getContext('webgl', { failIfMajorPerformanceCaveat: false }) ||
-                          testCanvas.getContext('experimental-webgl', { failIfMajorPerformanceCaveat: false });
-            if (glCtx) renderer = new THREE.WebGLRenderer({ canvas: testCanvas, context: glCtx });
-          } catch (eFallback) {
+            renderer = new THREE.WebGLRenderer({ canvas: probe.canvas, context: probe.gl, antialias: false, alpha: false });
+          } catch (e2) {
             renderer = null;
           }
         }
-        if (!renderer) { fallback('webgl'); return; }
+
+        if (!renderer || !renderer.getContext()) {
+          fallback('webgl');
+          return;
+        }
+
         let glLost = false;
         renderer.domElement.addEventListener('webglcontextlost', e => {
           e.preventDefault();
@@ -705,7 +719,6 @@ function renderResultCard(data) {
           $('engine').textContent = 'Cozinha 3D • Three.js • arraste os itens';
           requestAnimationFrame(frame)
         }, false);
-        renderer.domElement.addEventListener('webglcontextrestored', () => { glLost = false; $('threeRoot').style.display = ''; $('fallback').style.display = 'none'; $('engine').textContent = 'Cozinha 3D • Three.js • arraste os itens'; requestAnimationFrame(frame) }, false);
         renderer.setSize(root.clientWidth || 960, root.clientHeight || 560);
         renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
         renderer.shadowMap.enabled = true;
@@ -2122,10 +2135,10 @@ function renderResultCard(data) {
       } catch (err) { fallback() }
     }
     function fallback(reason) {
-      $('threeRoot').style.display = 'none'; $('fallback').style.display = 'flex'; $('engine').textContent = 'Modo offline • visual alternativo';
+      $('threeRoot').style.display = 'none'; $('fallback').style.display = 'flex'; $('engine').textContent = 'Modo 2D • Aceleração gráfica desativada';
       let msg = $('fallbackMsg'), btn = $('retry3D');
-      if (reason === 'webgl' && msg) { msg.textContent = '⚠️ Aceleração gráfica/WebGL está desativada no seu navegador. Para ativar a Cozinha 3D, acesse chrome://settings/system e ative "Usar aceleração de hardware quando disponível" e recarregue. O jogo funciona perfeitamente no modo 2D!'; if (btn) { btn.textContent = '🔄 Tentar carregar 3D'; btn.style.display = 'inline-flex'; } }
-      else if (reason === 'lost' && msg) { msg.textContent = 'A placa de vídeo reiniciou o 3D. O jogo continua no modo 2D — recarregue para tentar o 3D novamente.'; if (btn) btn.style.display = 'inline-flex' }
+      if (reason === 'webgl' && msg) { msg.textContent = 'A aceleração gráfica (WebGL) está desativada no seu navegador. O jogo está 100% jogável no modo 2D logo abaixo!'; if (btn) { btn.textContent = '🔄 Tentar carregar 3D'; btn.style.display = 'inline-flex'; } }
+      else if (reason === 'lost' && msg) { msg.textContent = 'A GPU reiniciou o contexto 3D. O jogo continua perfeitamente no modo 2D!'; if (btn) btn.style.display = 'inline-flex' }
     }
     function retry3D() { location.reload() }
     function updateScene(event) {
